@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e86a4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Os To-do">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Os To-do</title>
+<style>
+:root{--bg:#fbf7f2;--card:#fff;--ink:#2b2622;--mute:#8a8178;--line:#ece4da;--accent:#e86a4a;--a:#4a7be8;--b:#e84a8f;--both:#7a5ae8;--bad:#d93a3a;--ok:#3aa76d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,system-ui,"Segoe UI",sans-serif;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 18px 10px;z-index:5;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:24px}
+.icon-btn{background:none;border:0;font-size:22px;padding:6px;cursor:pointer}
+.sync{font-size:12px;color:var(--mute);margin-top:2px}
+.tabs{display:flex;gap:8px;margin-top:12px;overflow-x:auto}
+.tab{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 14px;font-size:14px;cursor:pointer;white-space:nowrap;color:var(--ink)}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+main{padding:14px 18px;max-width:640px;margin:auto}
+.sec{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:18px 0 8px}
+.item{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.chk{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex:none;margin-top:1px;background:#fff;cursor:pointer;display:grid;place-items:center;color:#fff;font-size:15px}
+.item.done .chk{background:var(--ok);border-color:var(--ok)}
+.item.done .t{text-decoration:line-through;color:var(--mute)}
+.body{flex:1;min-width:0;cursor:pointer}
+.t{word-wrap:break-word}
+.meta{display:flex;gap:8px;align-items:center;margin-top:5px;font-size:13px;color:var(--mute);flex-wrap:wrap}
+.pill{color:#fff;border-radius:10px;padding:1px 9px;font-size:12px}
+.pill.a{background:var(--a)}.pill.b{background:var(--b)}.pill.both{background:var(--both)}
+.due.over{color:var(--bad);font-weight:600}.due.today{color:var(--accent);font-weight:600}
+.empty{text-align:center;color:var(--mute);padding:40px 0}
+.fab{position:fixed;right:20px;bottom:calc(22px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--accent);color:#fff;border:0;font-size:32px;box-shadow:0 6px 18px rgba(232,106,74,.45);cursor:pointer}
+dialog{border:0;border-radius:20px;padding:20px;width:min(92vw,420px);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+.seg button.on{color:#fff;border-color:transparent}
+.seg button.on[data-v=a]{background:var(--a)}.seg button.on[data-v=b]{background:var(--b)}.seg button.on[data-v=both]{background:var(--both)}
+.row{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:12px;border-radius:12px;border:1px solid var(--line);background:#fff;font:inherit;cursor:pointer;color:var(--ink)}
+.btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.del{color:var(--bad);flex:0 0 auto;padding:12px 16px}
+.hint{font-size:12px;color:var(--mute);margin-top:6px}
+.sw{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+details{margin-top:16px;font-size:14px}summary{cursor:pointer;color:var(--mute)}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>✓ Os To-do</h1><button class="icon-btn" id="openSet" aria-label="Indstillinger">⚙️</button></div>
+  <div class="sync" id="sync">Kun på denne telefon</div>
+  <div class="tabs" id="tabs"></div>
+</header>
+<main id="list"></main>
+<button class="fab" id="add" aria-label="Ny opgave">+</button>
+
+<dialog id="dTask">
+  <form method="dialog" id="fTask">
+    <h2 style="margin:0" id="dTitle">Ny opgave</h2>
+    <label>Hvad skal gøres?</label>
+    <input id="fTitle" required placeholder="fx Book tid hos tandlægen" autocomplete="off">
+    <label>Hvem?</label>
+    <div class="seg" id="fWho"></div>
+    <label>Deadline</label>
+    <input type="date" id="fDue">
+    <div class="row">
+      <button type="button" class="btn del" id="fDel" hidden>Slet</button>
+      <button type="button" class="btn" id="fCancel">Annuller</button>
+      <button class="btn pri">Gem</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dSet">
+  <h2 style="margin:0">Indstillinger</h2>
+  <label>Dit navn</label><input id="sMe">
+  <label>Din kærestes navn</label><input id="sPartner">
+  <label>Hvem er du på denne telefon?</label>
+  <select id="sWho"></select>
+
+  <div class="sw"><strong>Notifikationer</strong><input type="checkbox" id="sNotif" style="width:auto;transform:scale(1.3)"></div>
+  <label>Påmind mig</label>
+  <select id="sLead">
+    <option value="0">Samme dag som deadline</option>
+    <option value="1">1 dag før</option>
+    <option value="2">2 dage før</option>
+    <option value="3">3 dage før</option>
+  </select>
+  <label>Klokken</label><input type="time" id="sTime">
+  <div class="hint">Notifikationer vises, når appen er åbnet (eller kører i baggrunden). Se noter om push nederst i README.</div>
+
+  <details>
+    <summary>Synkronisering mellem jer (Supabase)</summary>
+    <label>Supabase URL</label><input id="sUrl" placeholder="https://xxxx.supabase.co" autocapitalize="off">
+    <label>Supabase anon key</label><input id="sKey" autocapitalize="off">
+    <label>Jeres fælles kode (samme på begge telefoner)</label><input id="sRoom" placeholder="fx lang-hemmelig-kode-123" autocapitalize="off">
+  </details>
+  <div class="row"><button class="btn" id="sClose">Luk</button><button class="btn pri" id="sSave">Gem</button></div>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const LS = (k, v) => v === undefined ? JSON.parse(localStorage.getItem(k) || 'null') : localStorage.setItem(k, JSON.stringify(v));
+let settings = Object.assign({me:'Mig', partner:'Kæreste', who:'a', notif:false, lead:1, time:'09:00', url:'', key:'', room:''}, LS('settings') || {});
+let todos = LS('todos') || [];
+let filter = 'all', editing = null, formWho = 'a';
+const uid = () => crypto.randomUUID ? crypto.randomUUID() : 'x' + Date.now() + Math.random().toString(16).slice(2);
+const names = () => ({a: settings.me, b: settings.partner, both: 'Begge'});
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const iso = d => { const z = new Date(d.getTime() - d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
+const today = () => iso(new Date());
+
+function save(){ LS('todos', todos); render(); push(); }
+function touch(t){ t.updated = new Date().toISOString(); }
+
+/* ---------- Visning ---------- */
+function dueLabel(due){
+  if(!due) return '';
+  const diff = Math.round((new Date(due) - new Date(today())) / 864e5);
+  const d = new Date(due).toLocaleDateString('da-DK', {day:'numeric', month:'short'});
+  if(diff < 0) return {cls:'over', txt: `Overskredet · ${d}`};
+  if(diff === 0) return {cls:'today', txt:'I dag'};
+  if(diff === 1) return {cls:'', txt:'I morgen'};
+  return {cls:'', txt: d};
+}
+function render(){
+  const n = names();
+  $('#tabs').innerHTML = [['all','Alle'],['a',n.a],['b',n.b],['done','Færdige']]
+    .map(([k,l]) => `<button class="tab ${filter===k?'on':''}" data-f="${k}">${esc(l)}</button>`).join('');
+  let list = todos.filter(t => !t.deleted);
+  if(filter === 'done') list = list.filter(t => t.done);
+  else { list = list.filter(t => !t.done); if(filter !== 'all') list = list.filter(t => t.who === filter || t.who === 'both'); }
+  list.sort((x,y) => (x.due || '9999') .localeCompare(y.due || '9999'));
+  const box = $('#list');
+  if(!list.length){ box.innerHTML = `<div class="empty">${filter==='done'?'Ingen færdige endnu':'Ingenting at lave 🎉<br>Tryk + for at tømme hovedet'}</div>`; return; }
+  const groups = filter === 'done' ? [['Færdige', list]] : [
+    ['Overskredet', list.filter(t => t.due && t.due < today())],
+    ['I dag', list.filter(t => t.due === today())],
+    ['Senere', list.filter(t => t.due > today())],
+    ['Uden deadline', list.filter(t => !t.due)]
+  ];
+  box.innerHTML = groups.filter(g => g[1].length).map(([h, items]) =>
+    `<div class="sec">${h}</div>` + items.map(t => {
+      const dl = dueLabel(t.due);
+      return `<div class="item ${t.done?'done':''}" data-id="${t.id}">
+        <div class="chk" data-chk>${t.done?'✓':''}</div>
+        <div class="body" data-edit><div class="t">${esc(t.title)}</div>
+        <div class="meta"><span class="pill ${t.who}">${esc(n[t.who])}</span>${dl?`<span class="due ${dl.cls}">${dl.txt}</span>`:''}</div></div></div>`;
+    }).join('')).join('');
+}
+
+/* ---------- Opgave-dialog ---------- */
+function setWho(v){ formWho = v; document.querySelectorAll('#fWho button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+function openTask(t){
+  editing = t || null;
+  const n = names();
+  $('#fWho').innerHTML = ['a','b','both'].map(k => `<button type="button" data-v="${k}">${esc(n[k])}</button>`).join('');
+  $('#dTitle').textContent = t ? 'Rediger opgave' : 'Ny opgave';
+  $('#fTitle').value = t ? t.title : '';
+  $('#fDue').value = t ? (t.due || '') : '';
+  $('#fDel').hidden = !t;
+  setWho(t ? t.who : settings.who);
+  $('#dTask').showModal();
+  if(!t) setTimeout(() => $('#fTitle').focus(), 50);
+}
+$('#fWho').onclick = e => { const b = e.target.closest('button'); if(b) setWho(b.dataset.v); };
+$('#fCancel').onclick = () => $('#dTask').close();
+$('#fDel').onclick = () => { if(editing){ editing.deleted = true; touch(editing); save(); } $('#dTask').close(); };
+$('#fTask').onsubmit = () => {
+  const title = $('#fTitle').value.trim(); if(!title) return;
+  if(editing){ Object.assign(editing, {title, who: formWho, due: $('#fDue').value || null}); touch(editing); }
+  else { const t = {id: uid(), title, who: formWho, due: $('#fDue').value || null, done: false, deleted: false}; touch(t); todos.push(t); }
+  save();
+};
+$('#add').onclick = () => openTask();
+$('#tabs').onclick = e => { const b = e.target.closest('.tab'); if(b){ filter = b.dataset.f; render(); } };
+$('#list').onclick = e => {
+  const el = e.target.closest('.item'); if(!el) return;
+  const t = todos.find(x => x.id === el.dataset.id);
+  if(e.target.closest('[data-chk]')){ t.done = !t.done; touch(t); save(); }
+  else if(e.target.closest('[data-edit]')) openTask(t);
+};
+
+/* ---------- Indstillinger ---------- */
+$('#openSet').onclick = () => {
+  const n = names();
+  $('#sMe').value = settings.me; $('#sPartner').value = settings.partner;
+  $('#sWho').innerHTML = `<option value="a">${esc(n.a)}</option><option value="b">${esc(n.b)}</option>`;
+  $('#sWho').value = settings.who;
+  $('#sNotif').checked = settings.notif; $('#sLead').value = settings.lead; $('#sTime').value = settings.time;
+  $('#sUrl').value = settings.url; $('#sKey').value = settings.key; $('#sRoom').value = settings.room;
+  $('#dSet').showModal();
+};
+$('#sMe').oninput = $('#sPartner').oninput = () => {
+  const a = $('#sMe').value || 'Mig', b = $('#sPartner').value || 'Kæreste';
+  $('#sWho').options[0].text = a; $('#sWho').options[1].text = b;
+};
+$('#sClose').onclick = () => $('#dSet').close();
+$('#sSave').onclick = async () => {
+  const wantsNotif = $('#sNotif').checked;
+  Object.assign(settings, {
+    me: $('#sMe').value.trim() || 'Mig', partner: $('#sPartner').value.trim() || 'Kæreste', who: $('#sWho').value,
+    notif: wantsNotif, lead: +$('#sLead').value, time: $('#sTime').value || '09:00',
+    url: $('#sUrl').value.trim().replace(/\/$/, ''), key: $('#sKey').value.trim(), room: $('#sRoom').value.trim()
+  });
+  LS('settings', settings);
+  if(wantsNotif && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
+  if(wantsNotif && (!('Notification' in window) || Notification.permission !== 'granted'))
+    alert('Notifikationer er ikke slået til. På iPhone: læg først appen på hjemmeskærmen (Del → Føj til hjemmeskærm), åbn den derfra og slå dem til igen.');
+  $('#dSet').close(); render(); pull(); checkReminders();
+};
+
+/* ---------- Synkronisering (Supabase REST) ---------- */
+const cloud = () => settings.url && settings.key && settings.room;
+const H = () => {
+  const h = {apikey: settings.key, 'Content-Type': 'application/json'};
+  // Gamle nøgler (eyJ…) er JWT'er og sendes også som Bearer. Nye sb_publishable_-nøgler sendes kun som apikey.
+  if(!settings.key.startsWith('sb_')) h.Authorization = 'Bearer ' + settings.key;
+  return h;
+};
+function setSync(msg){ $('#sync').textContent = msg; }
+async function pull(){
+  if(!cloud()){ setSync('Kun på denne telefon'); return; }
+  try{
+    const r = await fetch(`${settings.url}/rest/v1/todos?room=eq.${encodeURIComponent(settings.room)}&select=*`, {headers: H()});
+    if(!r.ok) throw new Error(r.status);
+    const rows = await r.json();
+    let changed = false;
+    for(const row of rows){
+      const loc = todos.find(t => t.id === row.id);
+      const remote = {id: row.id, title: row.title, who: row.who, due: row.due, done: row.done, deleted: row.deleted, updated: row.updated};
+      if(!loc){ todos.push(remote); changed = true; }
+      else if(row.updated > loc.updated){ Object.assign(loc, remote); changed = true; }
+    }
+    if(changed){ LS('todos', todos); render(); }
+    await push(true);
+    setSync('Synkroniseret · ' + new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'}));
+  }catch(e){ setSync('Offline – prøver igen snart'); }
+}
+async function push(silent){
+  if(!cloud()) return;
+  try{
+    const rows = todos.map(t => ({id: t.id, room: settings.room, title: t.title, who: t.who, due: t.due, done: t.done, deleted: !!t.deleted, updated: t.updated}));
+    if(!rows.length) return;
+    const r = await fetch(`${settings.url}/rest/v1/todos?on_conflict=id`, {method:'POST', headers: {...H(), Prefer:'resolution=merge-duplicates,return=minimal'}, body: JSON.stringify(rows)});
+    if(!r.ok) throw new Error(r.status);
+    if(!silent) setSync('Synkroniseret · ' + new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'}));
+  }catch(e){ if(!silent) setSync('Offline – prøver igen snart'); }
+}
+
+/* ---------- Påmindelser ---------- */
+async function checkReminders(){
+  if(!settings.notif || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const sent = LS('sent') || {};
+  const now = new Date(), [hh, mm] = settings.time.split(':').map(Number);
+  const mine = todos.filter(t => !t.deleted && !t.done && t.due && (t.who === settings.who || t.who === 'both'));
+  const reg = await (navigator.serviceWorker && navigator.serviceWorker.ready.catch(() => null));
+  for(const t of mine){
+    const when = new Date(t.due + 'T00:00:00'); when.setDate(when.getDate() - settings.lead); when.setHours(hh, mm, 0, 0);
+    const overdue = t.due < today();
+    const key = t.id + '|' + t.due + '|' + (overdue ? today() : 'p');
+    if(now >= when && !sent[key]){
+      const dl = dueLabel(t.due).txt;
+      const opts = {body: `${t.title}\n${dl}`, icon: 'icon-192.png', tag: t.id};
+      const title = overdue ? 'Overskredet opgave' : 'Opgave nærmer sig';
+      if(reg) reg.showNotification(title, opts); else new Notification(title, opts);
+      sent[key] = 1;
+    }
+  }
+  LS('sent', sent);
+}
+
+/* ---------- Start ---------- */
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+render(); pull(); checkReminders();
+setInterval(() => { pull(); checkReminders(); render(); }, 30000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden){ pull(); checkReminders(); render(); } });
+</script>
+</body>
+</html>
