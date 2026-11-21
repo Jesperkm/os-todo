@@ -39,3 +39,5 @@ create policy "open" on todos for all using (true) with check (true);
 ⚙️ → slå Notifikationer til, vælg hvor mange dage før, og hvornår på dagen. Tryk "Tillad".
 
 **Vigtigt:** Denne version viser påmindelser, når appen er åben eller kører i baggrunden. iOS lukker web-apps ned efter et stykke tid, så en lukket app får ikke sendt noget. For helt pålidelig push (også når appen er lukket) kræver det en lille server (fx Supabase Edge Function + cron + Web Push). Service workeren er allerede forberedt til det.
+
+ 
