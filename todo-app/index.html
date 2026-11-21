@@ -181,19 +181,15 @@ details{margin-top:16px;font-size:14px}summary{cursor:pointer;color:var(--mute)}
   <label>Klokken</label><input type="time" id="sTime">
   <div class="hint">Notifikationer vises, når appen er åbnet (eller kører i baggrunden). Se noter om push nederst i README.</div>
 
-  <details>
-    <summary>Synkronisering mellem jer (Supabase)</summary>
-    <label>Supabase URL</label><input id="sUrl" placeholder="https://xxxx.supabase.co" autocapitalize="off">
-    <label>Supabase anon key</label><input id="sKey" autocapitalize="off">
-    <label>Jeres fælles kode (samme på begge telefoner)</label><input id="sRoom" placeholder="fx lang-hemmelig-kode-123" autocapitalize="off">
-  </details>
   <div class="row"><button class="btn" id="sClose">Luk</button><button class="btn pri" id="sSave">Gem</button></div>
 </dialog>
 
 <script>
 const $ = s => document.querySelector(s);
 const LS = (k, v) => v === undefined ? JSON.parse(localStorage.getItem(k) || 'null') : localStorage.setItem(k, JSON.stringify(v));
-let settings = Object.assign({me:'Jesper', partner:'Cecilie', who:'a', notif:false, lead:1, time:'09:00', url:'', key:'', room:''}, LS('settings') || {});
+// Fast forbindelse til jeres fælles database (Supabase publishable key må gerne ligge i koden)
+const CLOUD = {url:'https://gqkqhukorzohuyazwnfa.supabase.co', key:'sb_publishable_mVHrpNyqdmhEecmmVgjSdw_z4n6mQX6', room:'vt-685daf3c6c3350d07e69'};
+let settings = Object.assign({me:'Jesper', partner:'Cecilie', who:'a', notif:false, lead:1, time:'09:00'}, LS('settings') || {}, CLOUD);
 // Ældre gemte standardnavne opdateres automatisk
 if(settings.me === 'Mig') settings.me = 'Jesper';
 if(settings.partner === 'Kæreste') settings.partner = 'Cecilie';
@@ -329,7 +325,6 @@ $('#openSet').onclick = () => {
   $('#sWho').innerHTML = `<option value="a">${esc(n.a)}</option><option value="b">${esc(n.b)}</option>`;
   $('#sWho').value = settings.who;
   $('#sNotif').checked = settings.notif; $('#sLead').value = settings.lead; $('#sTime').value = settings.time;
-  $('#sUrl').value = settings.url; $('#sKey').value = settings.key; $('#sRoom').value = settings.room;
   $('#dSet').showModal();
 };
 $('#sMe').oninput = $('#sPartner').oninput = () => {
@@ -342,7 +337,7 @@ $('#sSave').onclick = async () => {
   Object.assign(settings, {
     me: $('#sMe').value.trim() || 'Jesper', partner: $('#sPartner').value.trim() || 'Cecilie', who: $('#sWho').value,
     notif: wantsNotif, lead: +$('#sLead').value, time: $('#sTime').value || '09:00',
-    url: $('#sUrl').value.trim().replace(/\/$/, ''), key: $('#sKey').value.trim(), room: $('#sRoom').value.trim()
+    ...CLOUD
   });
   LS('settings', settings);
   if(wantsNotif && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
